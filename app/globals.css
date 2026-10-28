@@ -55,3 +55,7 @@ body,.faq-list button{font-family:'DM Sans',Arial,sans-serif}
   .menu{right:16px;top:14px}
   .nav>nav{top:72px;padding-inline:20px}
 }
+
+@media(max-width:900px){
+  .global img{margin-bottom:-24px}
+}
