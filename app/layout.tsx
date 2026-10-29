@@ -15,6 +15,12 @@ export const metadata: Metadata = {
     locale: "en_TZ",
     type: "website"
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Safari Digital | Direct Bookings for Tanzania Tour Operators",
+    description: "Websites and Meta advertising built for Tanzania safari companies.",
+    images: ["/opengraph-image.png"]
+  },
   robots: { index: true, follow: true }
 };
 

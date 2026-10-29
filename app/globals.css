@@ -59,3 +59,7 @@ body,.faq-list button{font-family:'DM Sans',Arial,sans-serif}
 @media(max-width:900px){
   .global img{margin-bottom:-24px}
 }
+
+.faq-list article{background:#fff;border-color:#fff}
+.faq-list button{color:var(--ink)}
+.faq-list p{color:#285c4e}

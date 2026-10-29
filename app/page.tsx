@@ -32,7 +32,8 @@ const liveProjects = [
   { name: "Bathiel Expeditions", url: "https://bethleheli-website.vercel.app/", image: "/assets/bethleheli-project.png", description: "Kilimanjaro climbs and Tanzania journeys presented through a conversion-focused booking experience." },
   { name: "Chatama Safari", url: "https://www.chatamasafari.com/", image: "/assets/chatama-safari-project.png", description: "Tanzania safari experiences presented through a clear, direct enquiry journey." },
   { name: "BBM Safaris", url: "https://www.bbmsafaris.com/", image: "/assets/bbm-safaris-project.png", description: "Tailor-made Tanzania journeys across wildlife, Kilimanjaro and Zanzibar." },
-  { name: "Golden Trips", url: "https://thegoldentrips.com/", image: "/assets/golden-trips-project.png", description: "Private Tanzania family safaris designed around every generation." }
+  { name: "Golden Trips", url: "https://thegoldentrips.com/", image: "/assets/golden-trips-project.png", description: "Private Tanzania family safaris designed around every generation." },
+  { name: "Serengeti Wild Tours", url: "https://www.serengetiwildtours.com/", image: "/assets/serengeti-wild-tours-project.png", description: "Private Tanzania safaris and Kilimanjaro climbs shaped around each traveler’s journey." }
 ];
 
 const faq = [
