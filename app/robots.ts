@@ -1,4 +1,4 @@
 import type { MetadataRoute } from "next";
 export default function robots(): MetadataRoute.Robots {
-  return { rules: { userAgent: "*", allow: "/" }, sitemap: "https://www.safaridigital.co.tz/sitemap.xml" };
+  return { rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/api/", "/thank-you"] }, sitemap: "https://www.safaridigital.co.tz/sitemap.xml" };
 }
