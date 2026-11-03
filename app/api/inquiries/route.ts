@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { createInquiry, hashIp, isPersistenceConfigured, rateLimitExceeded, updateNotification, validateInquiryInput } from "../../../lib/inquiries.server";
+import { createInquiry, hashIp, isPersistenceConfigured, rateLimitExceeded, updateMetaEvent, updateNotification, validateInquiryInput } from "../../../lib/inquiries.server";
 import { isNotificationConfigured, notifySafariDigital } from "../../../lib/inquiry-email.server";
+import { sendMetaLead } from "../../../lib/meta-conversions.server";
 
 export const runtime = "nodejs";
 
@@ -30,8 +31,22 @@ export async function POST(request: NextRequest) {
     if (await rateLimitExceeded(ipHash)) return Response.json({ error: "Too many inquiries were submitted from this connection. Please try again later." }, { status: 429 });
     const saved = await createInquiry(validation.data, ipHash, request.headers.get("user-agent") || "unknown");
     if (saved.created) {
-      const notification = await notifySafariDigital(validation.data, saved.reference, validation.data.trackingToken);
-      await updateNotification(saved.id, notification.status, "error" in notification ? notification.error : undefined);
+      const [notification, metaEvent] = await Promise.all([
+        notifySafariDigital(validation.data, saved.reference, validation.data.trackingToken),
+        sendMetaLead(validation.data, {
+          eventId: saved.analyticsEventId,
+          reference: saved.reference,
+          clientIpAddress: forwarded,
+          clientUserAgent: request.headers.get("user-agent") || "unknown",
+          fbp: request.cookies.get("_fbp")?.value,
+          fbc: request.cookies.get("_fbc")?.value
+        })
+      ]);
+      const updates = await Promise.allSettled([
+        updateNotification(saved.id, notification.status, "error" in notification ? notification.error : undefined),
+        updateMetaEvent(saved.id, metaEvent.status, metaEvent.attempts, metaEvent.error)
+      ]);
+      for (const update of updates) if (update.status === "rejected") console.error("Inquiry delivery status update failed", update.reason);
     }
     return Response.json({ reference: saved.reference, trackingToken: validation.data.trackingToken, leadEventId: saved.analyticsEventId, notificationConfigured: isNotificationConfigured() }, { status: saved.created ? 201 : 200 });
   } catch (error) {

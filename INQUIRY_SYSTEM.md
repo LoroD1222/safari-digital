@@ -37,6 +37,15 @@ Every change creates an immutable status-history record. Internal notes are neve
 - Set `SEND_CUSTOMER_CONFIRMATION=true` to send the optional customer confirmation.
 - The form emits `form_start`, `form_step_complete`, and `lead_submission_success` to an existing Google `dataLayer`.
 - An existing Meta Pixel receives a deduplicated `Lead` event only after the server confirms that the inquiry was stored.
+- When `META_PIXEL_ID`, `META_CONVERSIONS_API_ACCESS_TOKEN`, and `META_GRAPH_API_VERSION` are configured, the server sends the same `Lead` event through Meta's Conversions API. It uses the shared event ID for browser/server deduplication and sends only hashed contact identifiers plus standard request-matching data.
+
+### Meta Conversions API setup
+
+1. In Meta Events Manager, select the same Pixel used on the website and generate a Conversions API access token.
+2. Add `META_PIXEL_ID`, `META_CONVERSIONS_API_ACCESS_TOKEN`, and the current supported `META_GRAPH_API_VERSION` to Vercel.
+3. Apply `supabase/migrations/202611030001_meta_conversions.sql` so delivery status is visible in `/admin`.
+4. For initial verification only, set `META_TEST_EVENT_CODE` to the code shown under **Test events** in Events Manager. Remove it after the event is confirmed.
+5. Submit one real test inquiry and confirm that the browser and server `Lead` events are deduplicated under the same event ID.
 
 ## Smoke test after deployment
 

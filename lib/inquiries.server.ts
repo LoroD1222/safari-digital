@@ -67,6 +67,10 @@ export type InquiryRecord = {
   created_at: string;
   status_updated_at: string;
   notification_status: string;
+  meta_event_status?: string;
+  meta_event_attempts?: number;
+  last_meta_event_error?: string | null;
+  meta_event_sent_at?: string | null;
   inquiry_status_history?: Array<Record<string, unknown>>;
   inquiry_notes?: Array<Record<string, unknown>>;
 };
@@ -160,17 +164,22 @@ export function validateInquiryInput(input: unknown): { data?: ValidatedInquiry;
 
 function config() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Inquiry persistence is not configured.");
   return { url, key };
 }
 
 async function supabase(path: string, init: RequestInit = {}) {
   const { url, key } = config();
+  const headers = new Headers(init.headers);
+  headers.set("apikey", key);
+  headers.set("Content-Type", "application/json");
+  headers.set("Prefer", "return=representation");
+  if (!key.startsWith("sb_secret_")) headers.set("Authorization", `Bearer ${key}`);
   const response = await fetch(`${url}/rest/v1/${path}`, {
     ...init,
     cache: "no-store",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=representation", ...init.headers }
+    headers
   });
   const body = await response.text();
   if (!response.ok) throw new Error(`Persistence error (${response.status}): ${body.slice(0, 300)}`);
@@ -178,7 +187,7 @@ async function supabase(path: string, init: RequestInit = {}) {
 }
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
-export const isPersistenceConfigured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+export const isPersistenceConfigured = () => Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY));
 
 export async function rateLimitExceeded(ipHash: string) {
   const since = encodeURIComponent(new Date(Date.now() - 60 * 60 * 1000).toISOString());
@@ -187,7 +196,7 @@ export async function rateLimitExceeded(ipHash: string) {
 }
 
 export function hashIp(ip: string) {
-  const salt = process.env.RATE_LIMIT_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const salt = process.env.RATE_LIMIT_SALT || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
 
@@ -238,6 +247,18 @@ export async function createInquiry(data: ValidatedInquiry, ipHash: string, user
 
 export async function updateNotification(id: string, status: string, error?: string) {
   await supabase(`inquiries?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ notification_status: status, notification_attempts: status === "not_configured" ? 0 : status === "sent" ? 1 : 2, last_notification_error: error?.slice(0, 500) || null }) });
+}
+
+export async function updateMetaEvent(id: string, status: string, attempts: number, error?: string) {
+  await supabase(`inquiries?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      meta_event_status: status,
+      meta_event_attempts: attempts,
+      last_meta_event_error: error?.slice(0, 500) || null,
+      meta_event_sent_at: status === "sent" ? new Date().toISOString() : null
+    })
+  });
 }
 
 export async function getInquiryByTrackingToken(token: string) {
