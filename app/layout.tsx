@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import MetaPixel from "./MetaPixel";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.safaridigital.co.tz"),
@@ -25,5 +26,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body>
+    {children}
+    <MetaPixel />
+    <noscript>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img height="1" width="1" style={{ display: "none" }} src="https://www.facebook.com/tr?id=1779477389724693&ev=PageView&noscript=1" alt="" />
+    </noscript>
+  </body></html>;
 }
