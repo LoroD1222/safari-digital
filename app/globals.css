@@ -60,6 +60,11 @@ body,.faq-list button{font-family:'DM Sans',Arial,sans-serif}
   .global img{margin-bottom:-24px}
 }
 
+/* Keep the stacked hero copy centered on phones and tablets. */
+@media(max-width:900px){
+  .hero-copy{text-align:center}
+}
+
 .faq-list article{background:#fff;border-color:#fff}
 .faq-list button{color:var(--ink)}
 .faq-list p{color:#285c4e}

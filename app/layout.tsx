@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import MetaPixel from "./MetaPixel";
+import PortalAttribution from "./PortalAttribution";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.safaridigital.co.tz"),
@@ -28,6 +29,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en"><body>
     {children}
+    <PortalAttribution />
     <MetaPixel />
     <noscript>
       {/* eslint-disable-next-line @next/next/no-img-element */}

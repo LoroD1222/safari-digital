@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ThankYouPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
+  if (params.portal === "1") return <PortalConfirmation />;
   const token = typeof params.token === "string" ? params.token : "";
   let inquiry: Awaited<ReturnType<typeof getInquiryByTrackingToken>> = null;
   if (token && isPersistenceConfigured()) {
@@ -35,6 +36,22 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
     <ProgressTracker token={token} initialStatus={inquiry.status} initialUpdatedAt={inquiry.status_updated_at} reference={inquiry.reference} />
     <section className={styles.next}>
       <div><p>What happens next?</p><h2>We&apos;ll review your business before the consultation.</h2><span>Our team will study your goals and requirements, then contact you using the details you provided. Keep your inquiry reference handy if you contact us first.</span></div>
+      <div className={styles.actions}><a className={styles.whatsapp} href="https://wa.me/255746401433?text=Hi%20Safari%20Digital%2C%20I%20recently%20submitted%20an%20inquiry." target="_blank" rel="noreferrer">Contact Us on WhatsApp ↗</a><Link href="/">Back to Homepage</Link></div>
+    </section>
+  </main>;
+}
+
+function PortalConfirmation() {
+  return <main className={styles.page}>
+    <PortalHeader />
+    <section className={styles.hero}>
+      <div className={styles.successIcon}>✓</div>
+      <p>Inquiry received</p>
+      <h1>Thank you for getting in touch!</h1>
+      <span>Your inquiry has been sent securely to our team. We&apos;ll review it and contact you shortly.</span>
+    </section>
+    <section className={styles.next}>
+      <div><p>What happens next?</p><h2>We&apos;ll review your business before the consultation.</h2><span>Our team will study your goals and requirements, then contact you using the details you provided.</span></div>
       <div className={styles.actions}><a className={styles.whatsapp} href="https://wa.me/255746401433?text=Hi%20Safari%20Digital%2C%20I%20recently%20submitted%20an%20inquiry." target="_blank" rel="noreferrer">Contact Us on WhatsApp ↗</a><Link href="/">Back to Homepage</Link></div>
     </section>
   </main>;

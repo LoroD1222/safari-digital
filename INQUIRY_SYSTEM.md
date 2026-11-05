@@ -2,6 +2,19 @@
 
 The website now includes a four-step qualification form, secure inquiry persistence, email notifications, a private admin dashboard, and a customer-facing project progress page.
 
+## Safari Digital Portal
+
+New website inquiries are sent directly to Safari Digital Portal, including UTM campaign values, `fbclid`, and the browser's Meta `_fbc` / `_fbp` cookies when they are available. The remaining qualification answers are included in the portal inquiry message.
+
+To migrate the existing Supabase inquiries, first run a dry run in an environment that has the production Supabase credentials, then repeat it with `--execute`:
+
+```bash
+node scripts/migrate-inquiries-to-portal.mjs
+node scripts/migrate-inquiries-to-portal.mjs --execute
+```
+
+The migration only reads from Supabase; it never updates or deletes the existing records. Do not run the `--execute` command more than once because the public portal API does not expose a documented idempotency key for imported inquiries.
+
 ## Production setup
 
 1. Create or select a Supabase project.
