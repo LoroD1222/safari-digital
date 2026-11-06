@@ -16,8 +16,6 @@ import {
 import { getPortalAttribution } from "../PortalAttribution";
 import styles from "./get-started.module.css";
 
-const PORTAL_INQUIRIES_ENDPOINT = "https://safari-digital-portal.vercel.app/api/inquiries";
-const PORTAL_FORM_KEY = "sdf_-qsV4XCNLtUodlDXr0p1Rw1Z";
 
 type FormState = {
   service: ServiceValue | "";
@@ -49,26 +47,9 @@ function track(name: string, parameters: Record<string, string | number> = {}) {
   else (analyticsWindow.dataLayer ||= []).push(payload);
 }
 
-function getCookie(name: string) {
-  const value = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))?.[1];
-  if (!value) return undefined;
-  try { return decodeURIComponent(value); } catch { return value; }
-}
-
-function portalMessage(form: FormState, packageLabel: string | null) {
-  return [
-    "Safari Digital website qualification form",
-    `Company: ${form.companyName}`,
-    form.websiteUrl && `Website: ${form.websiteUrl}`,
-    packageLabel && `Package: ${packageLabel}`,
-    form.experiences.length && `Experiences: ${form.experiences.join(", ")}`,
-    form.bookingSources.length && `Current booking sources: ${form.bookingSources.join(", ")}`,
-    form.challenge && `Biggest challenge: ${form.challenge}`,
-    form.markets.length && `Target markets: ${form.markets.join(", ")}`,
-    form.startTimeline && `Project timeline: ${form.startTimeline}`,
-    form.budgetRange && `Budget range: ${form.budgetRange}`,
-    form.additionalInformation && `Additional information: ${form.additionalInformation}`
-  ].filter(Boolean).join("\n");
+function createTrackingToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 export default function QualificationForm({ initialService, packageName, packageLabel }: { initialService: ServiceValue | null; packageName: PackageValue | null; packageLabel: string | null }) {
@@ -78,6 +59,9 @@ export default function QualificationForm({ initialService, packageName, package
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [startedAt] = useState(() => Date.now());
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const [trackingToken] = useState(() => createTrackingToken());
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -159,29 +143,31 @@ export default function QualificationForm({ initialService, packageName, package
     setSubmitError("");
     const attribution = getPortalAttribution();
     try {
-      const response = await fetch(PORTAL_INQUIRIES_ENDPOINT, {
+      const response = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          key: PORTAL_FORM_KEY,
-          name: form.fullName,
-          email: form.email,
-          phone: `${form.countryCode}${form.whatsapp.replace(/^0+/, "")}`,
-          interested_in: packageLabel || form.service,
-          message: portalMessage(form, packageLabel),
-          ...attribution,
-          fbc: getCookie("_fbc"),
-          fbp: getCookie("_fbp"),
-          _gotcha: form.companyFax
+          ...form,
+          whatsapp: `${form.countryCode}${form.whatsapp.replace(/^0+/, "")}`,
+          packageName,
+          idempotencyKey,
+          trackingToken,
+          startedAt,
+          source: attribution.utm_source || "website_get_started",
+          utm: attribution,
+          referrer: document.referrer,
+          landingUrl: window.location.href
         })
       });
+      const result = await response.json();
       if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
+        setErrors(result.fields || {});
         throw new Error(typeof result.error === "string" ? result.error : "Your inquiry could not be submitted.");
       }
       sessionStorage.removeItem(storageKey);
+      sessionStorage.setItem("safari-digital-pending-lead", JSON.stringify({ token: result.trackingToken, eventId: result.leadEventId }));
       track("lead_submission_success", { service: form.service, package: packageName || "none" });
-      router.push("/thank-you?portal=1");
+      router.push(`/thank-you?token=${encodeURIComponent(result.trackingToken)}`);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
       setSubmitting(false);

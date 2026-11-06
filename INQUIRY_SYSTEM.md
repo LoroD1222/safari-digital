@@ -4,7 +4,7 @@ The website now includes a four-step qualification form, secure inquiry persiste
 
 ## Safari Digital Portal
 
-New website inquiries are sent directly to Safari Digital Portal, including UTM campaign values, `fbclid`, and the browser's Meta `_fbc` / `_fbp` cookies when they are available. The remaining qualification answers are included in the portal inquiry message.
+New website inquiries are saved in Supabase first. After a successful save, the server sends the same lead to Safari Digital Portal, including UTM campaign values, `fbclid`, and the browser's Meta `_fbc` / `_fbp` cookies when they are available. The remaining qualification answers are included in the portal inquiry message. Portal delivery failures are logged without discarding the Supabase inquiry.
 
 To migrate the existing Supabase inquiries, first run a dry run in an environment that has the production Supabase credentials, then repeat it with `--execute`:
 

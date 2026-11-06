@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createInquiry, hashIp, isPersistenceConfigured, rateLimitExceeded, updateMetaEvent, updateNotification, validateInquiryInput } from "../../../lib/inquiries.server";
 import { isNotificationConfigured, notifySafariDigital } from "../../../lib/inquiry-email.server";
 import { sendMetaLead } from "../../../lib/meta-conversions.server";
+import { sendPortalInquiry } from "../../../lib/inquiry-portal.server";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (await rateLimitExceeded(ipHash)) return Response.json({ error: "Too many inquiries were submitted from this connection. Please try again later." }, { status: 429 });
     const saved = await createInquiry(validation.data, ipHash, request.headers.get("user-agent") || "unknown");
     if (saved.created) {
-      const [notification, metaEvent] = await Promise.all([
+      const [notificationResult, metaEventResult, portalResult] = await Promise.allSettled([
         notifySafariDigital(validation.data, saved.reference, validation.data.trackingToken),
         sendMetaLead(validation.data, {
           eventId: saved.analyticsEventId,
@@ -40,11 +41,18 @@ export async function POST(request: NextRequest) {
           clientUserAgent: request.headers.get("user-agent") || "unknown",
           fbp: request.cookies.get("_fbp")?.value,
           fbc: request.cookies.get("_fbc")?.value
+        }),
+        sendPortalInquiry(validation.data, {
+          fbc: request.cookies.get("_fbc")?.value,
+          fbp: request.cookies.get("_fbp")?.value
         })
       ]);
+      if (portalResult.status === "rejected") console.error("Portal inquiry delivery failed", portalResult.reason);
+      if (notificationResult.status === "rejected") console.error("Inquiry notification failed", notificationResult.reason);
+      if (metaEventResult.status === "rejected") console.error("Meta lead delivery failed", metaEventResult.reason);
       const updates = await Promise.allSettled([
-        updateNotification(saved.id, notification.status, "error" in notification ? notification.error : undefined),
-        updateMetaEvent(saved.id, metaEvent.status, metaEvent.attempts, metaEvent.error)
+        notificationResult.status === "fulfilled" ? updateNotification(saved.id, notificationResult.value.status, "error" in notificationResult.value ? notificationResult.value.error : undefined) : Promise.resolve(),
+        metaEventResult.status === "fulfilled" ? updateMetaEvent(saved.id, metaEventResult.value.status, metaEventResult.value.attempts, metaEventResult.value.error) : Promise.resolve()
       ]);
       for (const update of updates) if (update.status === "rejected") console.error("Inquiry delivery status update failed", update.reason);
     }
